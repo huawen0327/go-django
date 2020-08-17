@@ -1,9 +1,21 @@
 package golee
 
 import (
-	"fmt"
 	"net/http"
 )
+
+// Engine golee的方法
+type Engine struct {
+	Router *Router
+}
+
+// StatusOK OK码
+var StatusOK = http.StatusOK
+
+// New engine的构造方法
+func New() *Engine {
+	return &Engine{Router: newRouter()}
+}
 
 // Run defines the method to start a http server
 func (engine *Engine) Run(addr string) (err error) {
@@ -12,10 +24,6 @@ func (engine *Engine) Run(addr string) (err error) {
 
 // ServeHTTP ServeHTTP
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	key := req.URL.Path
-	if handler, ok := engine.router[key]; ok {
-		handler(w, req)
-	} else {
-		fmt.Fprintf(w, "404 NOT FOUND: %s\n", req.URL)
-	}
+	c := newContext(w, req)
+	engine.Router.handle(c)
 }
