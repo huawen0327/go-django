@@ -1,6 +1,7 @@
 package golee
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,7 +15,7 @@ type node struct {
 	// pattern     string      // 待匹配路由，例如 /p/:lang
 	pathNode    string      // 路由中的一部分，例如 :lang
 	children    []*node     // 子节点，例如 [doc, tutorial, intro]
-	isWild      bool        // 是否精确匹配，part 含有 : 或 * 时为true
+	isWild      bool        // 是否精确匹配，part开头为 * 时为true
 	handlerFunc HandlerFunc // 配置函数
 }
 
@@ -33,8 +34,22 @@ func newRouter() *Router {
 }
 
 // 添加节点
-func (n *node) insert(pathArr []string, handler HandlerFunc) {
-	fmt.Println("point")
+func (n *node) insert(pathArr []string, handler HandlerFunc, level int) {
+	// 判断是否是 * 开头的路径
+	if pathArr[level][0] == 42 {
+		child := &node{pathNode: pathArr[level], handlerFunc: handler, isWild: true}
+		n.children = append(n.children, child)
+		return
+	}
+	// 判断是否为最后一个
+	if level+1 == len(pathArr) {
+		child := &node{pathNode: pathArr[level], handlerFunc: handler}
+		n.children = append(n.children, child)
+		return
+	}
+	child := &node{pathNode: pathArr[level]}
+	n.children = append(n.children, child)
+	child.insert(pathArr, handler, level+1)
 }
 
 // 添加首节点
@@ -44,7 +59,7 @@ func (n *node) addNode(pathArr []string, handler HandlerFunc) {
 		n.handlerFunc = handler
 		return
 	}
-	n.insert(pathArr, handler)
+	n.insert(pathArr, handler, 1)
 	return
 }
 
@@ -53,22 +68,33 @@ func (router *Router) Path(pattern string, handler HandlerFunc) {
 	pathArr := strings.Split(pattern, "/")
 	pathArr[0] = "/"
 	router.nodes.addNode(pathArr, handler)
-	// for index, pathNode := range pathArr {
-	// 	insert(pathArr, pathNode, index)
-	// }
-	// router.paths[pattern] = handler
-	// reqNode := &node{
-	// 	part:   "b",
-	// 	isWild: true,
-	// }
-	// router.nodes = append(router.nodes, reqNode)
+}
+
+// 查找最终Node的HandlerFunc
+func (n *node) matchNode(c *Context, level int) (handler HandlerFunc) {
+	fmt.Println("matchNode")
+	return
+}
+
+// 查找路径
+func (router *Router) match(c *Context) (HandlerFunc, error) {
+	pathArr := strings.Split(c.Path, "/")
+	if len(pathArr) == 2 && pathArr[1] == "" {
+		handler := router.nodes.handlerFunc
+		if handler == nil {
+			return handler, errors.New("Not Found Path")
+		}
+		return handler, nil
+	}
+	return nil, nil
 }
 
 func (router *Router) handle(c *Context) {
-	key := c.Path
-	if handler, ok := router.paths[key]; ok {
-		handler(c)
-	} else {
+	// key := c.Path
+	handler, err := router.match(c)
+	if err != nil {
 		c.StringResponse(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+	} else {
+		handler(c)
 	}
 }

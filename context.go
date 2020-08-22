@@ -12,13 +12,12 @@ type H map[string]interface{}
 // Context 上下文的结构体
 type Context struct {
 	// origin objects
-	Writer http.ResponseWriter
-	Req    *http.Request
-	// request info
-	Path   string
-	Method string
-	// response info
+	Writer     http.ResponseWriter
+	Req        *http.Request
+	Path       string
+	Method     string
 	StatusCode int
+	parm       string
 }
 
 // newContext Context的构造函数
