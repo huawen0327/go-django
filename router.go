@@ -2,7 +2,6 @@ package golee
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 )
@@ -36,7 +35,7 @@ func newRouter() *Router {
 // 添加节点
 func (n *node) insert(pathArr []string, handler HandlerFunc, level int) {
 	// 判断是否是 * 开头的路径
-	if pathArr[level][0] == 42 {
+	if pathArr[level][0] == '*' {
 		child := &node{pathNode: pathArr[level], handlerFunc: handler, isWild: true}
 		n.children = append(n.children, child)
 		return
@@ -71,9 +70,35 @@ func (router *Router) Path(pattern string, handler HandlerFunc) {
 }
 
 // 查找最终Node的HandlerFunc
-func (n *node) matchNode(c *Context, level int) (handler HandlerFunc) {
-	fmt.Println("matchNode")
-	return
+func (n *node) matchNode(c *Context, level int) (HandlerFunc, error) {
+	pathArr := strings.Split(c.Path, "/")
+	if len(pathArr) == level+1 {
+		for _, child := range n.children {
+			if (pathArr[level] == child.pathNode || child.pathNode[0] == ':' || child.pathNode[0] == '*') && child.handlerFunc != nil {
+				c.Parm = pathArr[level]
+				handler := child.handlerFunc
+				return handler, nil
+			}
+		}
+		return nil, errors.New("Not Found Path")
+	}
+	for _, child := range n.children {
+		if child.pathNode[0] == '*' {
+			c.Parm = pathArr[level]
+			handler := child.handlerFunc
+			return handler, nil
+		}
+		if child.pathNode[0] == ':' {
+			c.Parm = pathArr[level]
+			handler, err := child.matchNode(c, level+1)
+			return handler, err
+		}
+		if pathArr[level] == child.pathNode {
+			handler, err := child.matchNode(c, level+1)
+			return handler, err
+		}
+	}
+	return nil, errors.New("Not Found Path")
 }
 
 // 查找路径
@@ -82,11 +107,12 @@ func (router *Router) match(c *Context) (HandlerFunc, error) {
 	if len(pathArr) == 2 && pathArr[1] == "" {
 		handler := router.nodes.handlerFunc
 		if handler == nil {
-			return handler, errors.New("Not Found Path")
+			return nil, errors.New("Not Found Path")
 		}
 		return handler, nil
 	}
-	return nil, nil
+	handler, err := router.nodes.matchNode(c, 1)
+	return handler, err
 }
 
 func (router *Router) handle(c *Context) {

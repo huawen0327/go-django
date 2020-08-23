@@ -17,7 +17,7 @@ type Context struct {
 	Path       string
 	Method     string
 	StatusCode int
-	parm       string
+	Parm       string
 }
 
 // newContext Context的构造函数
