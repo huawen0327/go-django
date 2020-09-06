@@ -7,6 +7,7 @@ import (
 // Engine golee的方法
 type Engine struct {
 	Router *Router
+	Group  *Group
 }
 
 // StatusOK OK码
@@ -14,7 +15,9 @@ var StatusOK = http.StatusOK
 
 // New engine的构造方法
 func New() *Engine {
-	return &Engine{Router: newRouter()}
+	engine := &Engine{Router: newRouter()}
+	engine.Group = &Group{engine: engine}
+	return engine
 }
 
 // Run defines the method to start a http server

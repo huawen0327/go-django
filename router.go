@@ -12,10 +12,10 @@ type HandlerFunc func(*Context)
 // node节点
 type node struct {
 	// pattern     string      // 待匹配路由，例如 /p/:lang
-	pathNode    string      // 路由中的一部分，例如 :lang
-	children    []*node     // 子节点，例如 [doc, tutorial, intro]
-	isWild      bool        // 是否精确匹配，part开头为 * 时为true
-	handlerFunc HandlerFunc // 配置函数
+	pathNode    string        // 路由中的一部分，例如 :lang
+	children    []*node       // 子节点，例如 [doc, tutorial, intro]
+	isWild      bool          // 是否精确匹配，part开头为 * 时为true
+	handlerFunc []HandlerFunc // 配置函数
 }
 
 // Router ServeHTTP的结构体
@@ -33,7 +33,7 @@ func newRouter() *Router {
 }
 
 // 添加节点
-func (n *node) insert(pathArr []string, handler HandlerFunc, level int) {
+func (n *node) insert(pathArr []string, handler []HandlerFunc, level int) {
 	// 判断是否是 * 开头的路径
 	if pathArr[level][0] == '*' {
 		child := &node{pathNode: pathArr[level], handlerFunc: handler, isWild: true}
@@ -52,7 +52,7 @@ func (n *node) insert(pathArr []string, handler HandlerFunc, level int) {
 }
 
 // 添加首节点
-func (n *node) addNode(pathArr []string, handler HandlerFunc) {
+func (n *node) addNode(pathArr []string, handler []HandlerFunc) {
 	n.pathNode = "/"
 	if pathArr[1] == "" {
 		n.handlerFunc = handler
@@ -63,14 +63,18 @@ func (n *node) addNode(pathArr []string, handler HandlerFunc) {
 }
 
 // Path 添加路径
-func (router *Router) Path(pattern string, handler HandlerFunc) {
+func (router *Router) Path(pattern string, handler ...HandlerFunc) {
 	pathArr := strings.Split(pattern, "/")
 	pathArr[0] = "/"
-	router.nodes.addNode(pathArr, handler)
+	var handlerArr []HandlerFunc
+	for _, h := range handler {
+		handlerArr = append(handlerArr, h)
+	}
+	router.nodes.addNode(pathArr, handlerArr)
 }
 
 // 查找最终Node的HandlerFunc
-func (n *node) matchNode(c *Context, level int) (HandlerFunc, error) {
+func (n *node) matchNode(c *Context, level int) ([]HandlerFunc, error) {
 	pathArr := strings.Split(c.Path, "/")
 	if len(pathArr) == level+1 {
 		for _, child := range n.children {
@@ -102,7 +106,7 @@ func (n *node) matchNode(c *Context, level int) (HandlerFunc, error) {
 }
 
 // 查找路径
-func (router *Router) match(c *Context) (HandlerFunc, error) {
+func (router *Router) match(c *Context) ([]HandlerFunc, error) {
 	pathArr := strings.Split(c.Path, "/")
 	if len(pathArr) == 2 && pathArr[1] == "" {
 		handler := router.nodes.handlerFunc
@@ -121,6 +125,7 @@ func (router *Router) handle(c *Context) {
 	if err != nil {
 		c.StringResponse(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
 	} else {
-		handler(c)
+		c.handler = handler
+		c.run()
 	}
 }

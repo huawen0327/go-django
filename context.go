@@ -18,6 +18,8 @@ type Context struct {
 	Method     string
 	StatusCode int
 	Parm       string
+	index      int
+	handler    []HandlerFunc
 }
 
 // newContext Context的构造函数
@@ -27,6 +29,7 @@ func newContext(w http.ResponseWriter, req *http.Request) *Context {
 		Req:    req,
 		Path:   req.URL.Path,
 		Method: req.Method,
+		index:  0,
 	}
 }
 
@@ -73,4 +76,18 @@ func (c *Context) StringResponse(code int, format string, values ...interface{})
 	c.SetHeader("Content-Type", "text/plain")
 	c.Status(code)
 	c.Writer.Write([]byte(fmt.Sprintf(format, values...)))
+}
+
+// Next 下一个函数
+func (c *Context) Next() {
+	c.index++
+	for ; c.index < len(c.handler); c.index++ {
+		c.handler[c.index](c)
+	}
+}
+
+func (c *Context) run() {
+	for ; c.index < len(c.handler); c.index++ {
+		c.handler[c.index](c)
+	}
 }
