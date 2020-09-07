@@ -3,6 +3,7 @@ package golee
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 )
 
@@ -59,6 +60,17 @@ func (c *Context) HTMLResponse(code int, html string) {
 	c.SetHeader("Content-Type", "text/html")
 	c.Status(code)
 	c.Writer.Write([]byte(html))
+}
+
+// HTMLRender Http响应
+func (c *Context) HTMLRender(code int, dict interface{}, pattern ...string) {
+	c.SetHeader("Content-Type", "text/html")
+	c.Status(code)
+	if tmpl, err := template.ParseFiles(pattern...); err != nil {
+		http.Error(c.Writer, err.Error(), 500)
+	} else {
+		tmpl.Execute(c.Writer, dict)
+	}
 }
 
 // JSONResponse Json响应

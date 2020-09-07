@@ -46,7 +46,19 @@ func (n *node) insert(pathArr []string, handler []HandlerFunc, level int) {
 		n.children = append(n.children, child)
 		return
 	}
-	child := &node{pathNode: pathArr[level]}
+	var child *node
+	// 寻找当前路径是否已经存在
+	for _, c := range n.children {
+		if c.pathNode == pathArr[level] {
+			child = c
+			break
+			// fmt.Println(child)
+		}
+	}
+	if child == nil {
+		child = &node{pathNode: pathArr[level]}
+	}
+	// child := &node{pathNode: pathArr[level]}
 	n.children = append(n.children, child)
 	child.insert(pathArr, handler, level+1)
 }
