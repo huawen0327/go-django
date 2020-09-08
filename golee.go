@@ -25,6 +25,12 @@ func (engine *Engine) Run(addr string) (err error) {
 	return http.ListenAndServe(addr, engine)
 }
 
+// Use 使用全局的中间件
+func (engine *Engine) Use(handler ...HandlerFunc) {
+	engine.Router.handler = append(engine.Router.handler, handler...)
+	engine.Group.handler = append(engine.Group.handler, handler...)
+}
+
 // ServeHTTP ServeHTTP
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	c := newContext(w, req)

@@ -6,8 +6,8 @@ import "strings"
 type Group struct {
 	prefix string
 	// router       *Router
-	HandlerFuncs []HandlerFunc
-	engine       *Engine
+	handler []HandlerFunc
+	engine  *Engine
 }
 
 // Path 集成自router的函数
@@ -21,7 +21,7 @@ func (g *Group) Path(pattern string, handler ...HandlerFunc) {
 	pathArr := strings.Split(pattern, "/")
 	pathArr[0] = "/"
 	var handlerArr []HandlerFunc
-	handlerArr = append(handlerArr, g.HandlerFuncs...)
+	handlerArr = append(handlerArr, g.handler...)
 	handlerArr = append(handlerArr, handler...)
 	// for _, h := range handler {
 	// 	handlerArr = append(handlerArr, h)
@@ -33,6 +33,6 @@ func (g *Group) Path(pattern string, handler ...HandlerFunc) {
 func (g *Group) SetGroup(prefix string, handler ...HandlerFunc) {
 	g.prefix = prefix
 	// for _, h := range handler {
-	g.HandlerFuncs = append(g.HandlerFuncs, handler...)
+	g.handler = append(g.handler, handler...)
 	// }
 }

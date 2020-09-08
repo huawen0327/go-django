@@ -20,8 +20,9 @@ type node struct {
 
 // Router ServeHTTP的结构体
 type Router struct {
-	paths map[string]HandlerFunc
-	nodes *node
+	paths   map[string]HandlerFunc
+	nodes   *node
+	handler []HandlerFunc
 }
 
 // New 设置路径
@@ -57,9 +58,9 @@ func (n *node) insert(pathArr []string, handler []HandlerFunc, level int) {
 	}
 	if child == nil {
 		child = &node{pathNode: pathArr[level]}
+		n.children = append(n.children, child)
 	}
 	// child := &node{pathNode: pathArr[level]}
-	n.children = append(n.children, child)
 	child.insert(pathArr, handler, level+1)
 }
 
@@ -79,6 +80,7 @@ func (router *Router) Path(pattern string, handler ...HandlerFunc) {
 	pathArr := strings.Split(pattern, "/")
 	pathArr[0] = "/"
 	var handlerArr []HandlerFunc
+	handlerArr = router.handler
 	for _, h := range handler {
 		handlerArr = append(handlerArr, h)
 	}
